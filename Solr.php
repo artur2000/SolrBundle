@@ -399,6 +399,8 @@ class Solr implements SolrInterface
     {
         $doc = $this->entityMapper->toDocument($metaInformation);
 
+        $doc->addField('type', strtolower(str_replace('\\','-',$metaInformation->getClassName())));
+
         return $doc;
     }
 
