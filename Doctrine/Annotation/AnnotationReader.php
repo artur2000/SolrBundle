@@ -5,6 +5,7 @@ namespace FS\SolrBundle\Doctrine\Annotation;
 use Doctrine\Common\Annotations\Annotation;
 use Doctrine\Common\Annotations\Reader;
 use FS\SolrBundle\Doctrine\Mapper\SolrMappingException;
+use Psr\Log\LoggerInterface;
 
 class AnnotationReader
 {
@@ -18,6 +19,11 @@ class AnnotationReader
      */
     private $entityProperties;
 
+    /**
+     * @var LoggerInterface
+     */
+    private $logger;
+
     const DOCUMENT_CLASS = 'FS\SolrBundle\Doctrine\Annotation\Document';
     const DOCUMENT_NESTED_CLASS = 'FS\SolrBundle\Doctrine\Annotation\Nested';
     const FIELD_CLASS = 'FS\SolrBundle\Doctrine\Annotation\Field';
@@ -27,9 +33,10 @@ class AnnotationReader
     /**
      * @param Reader $reader
      */
-    public function __construct(Reader $reader)
+    public function __construct(Reader $reader, LoggerInterface $logger)
     {
         $this->reader = $reader;
+        $this->logger = $logger;
     }
 
     /**
@@ -54,7 +61,8 @@ class AnnotationReader
 
             $property->setAccessible(true);
             $annotation->value = $property->getValue($entity);
-            $annotation->name = $property->getName();
+            /** @var set name according to property name only if not explicitely set */
+            $annotation->name = $annotation->name?:$property->getName();
 
             $fields[] = $annotation;
         }
@@ -107,7 +115,12 @@ class AnnotationReader
                 continue;
             }
 
-            $annotation->value = $method->invoke($entity);
+            try {
+                $annotation->value = $method->invoke($entity);
+            } catch (\Exception $e) {
+                $this->logger->error($e->getMessage());
+                $annotation->value = '[value fetch failed]';
+            }
             
             if ($annotation->name == '') {
                 throw new SolrMappingException(sprintf('Please configure a field-name for method "%s" with field-annotation in class "%s"', $method->getName(), get_class($entity)));

@@ -19,5 +19,8 @@ final class Events
     const PRE_CLEAR_INDEX = 'solr.pre_clear_index';
     const POST_CLEAR_INDEX = 'solr.post_clear_index';
 
+    const PRE_DOCUMENT_CREATE = 'solr.document.pre_create';
+    const POST_DOCUMENT_CREATE = 'solr.document.post_create';
+
     const ERROR = 'solr.error';
 } 

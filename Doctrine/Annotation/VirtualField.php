@@ -1,4 +1,5 @@
 <?php
+
 namespace FS\SolrBundle\Doctrine\Annotation;
 
 use Doctrine\Common\Annotations\Annotation;
@@ -8,8 +9,9 @@ use phpDocumentor\Reflection\DocBlock\Type\Collection;
  * Defines a field of a solr-document
  *
  * @Annotation
+ * @Target({"METHOD"})
  */
-class Field extends Annotation
+class VirtualField extends Annotation
 {
 
     /**
@@ -60,9 +62,7 @@ class Field extends Annotation
         'float' => '_f',
         'double' => '_d',
         'datetime' => '_dt',
-        'point' => '_p',
-        'location' => '_location',
-        'string_array' => '_stringM'
+        'point' => '_p'
     );
 
     /**
@@ -196,3 +196,4 @@ class Field extends Annotation
         return self::$TYP_COMPLEX_MAPPING;
     }
 }
+

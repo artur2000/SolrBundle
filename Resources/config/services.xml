@@ -87,6 +87,7 @@
 
         <service id="solr.doctrine.annotation.annotation_reader" class="FS\SolrBundle\Doctrine\Annotation\AnnotationReader">
             <argument id="annotation_reader" type="service"/>
+            <argument id="logger" type="service"/>
         </service>
 
         <service id="solr.command.clear_index_command" class="FS\SolrBundle\Command\ClearIndexCommand">

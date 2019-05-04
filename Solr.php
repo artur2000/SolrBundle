@@ -18,6 +18,8 @@ use FS\SolrBundle\Doctrine\Mapper\EntityMapper;
 use FS\SolrBundle\Doctrine\Mapper\MetaInformationFactory;
 use FS\SolrBundle\Event\ErrorEvent;
 use FS\SolrBundle\Event\Event;
+use FS\SolrBundle\Event\MetaInformationsEvent;
+use FS\SolrBundle\Event\DocumentEvent;
 use FS\SolrBundle\Event\Events;
 use FS\SolrBundle\Query\AbstractQuery;
 use FS\SolrBundle\Query\SolrQuery;
@@ -350,7 +352,16 @@ class Solr implements SolrInterface
                 continue;
             }
 
+            $this->eventManager->dispatch(Events::PRE_DOCUMENT_CREATE, new MetaInformationsEvent(
+                $metaInformations
+            ));
+
             $doc = $this->toDocument($metaInformations);
+
+            $this->eventManager->dispatch(Events::POST_DOCUMENT_CREATE, new DocumentEvent(
+                $metaInformations,
+                $doc
+            ));
 
             $allDocuments[$metaInformations->getIndex()][] = $doc;
         }
@@ -398,8 +409,6 @@ class Solr implements SolrInterface
     private function toDocument(MetaInformationInterface $metaInformation): DocumentInterface
     {
         $doc = $this->entityMapper->toDocument($metaInformation);
-
-        $doc->addField('type', strtolower(str_replace('\\','-',$metaInformation->getClassName())));
 
         return $doc;
     }
