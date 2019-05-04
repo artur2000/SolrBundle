@@ -52,14 +52,14 @@ class Field extends Annotation
      */
     private static $TYP_SIMPLE_MAPPING = array(
         'string' => '_s',
-        'text' => '_t',
-        'date' => '_dt',
-        'boolean' => '_b',
-        'integer' => '_i',
-        'long' => '_l',
-        'float' => '_f',
-        'double' => '_d',
-        'datetime' => '_dt',
+        'text' => '_textS',
+        'date' => '_dateS',
+        'boolean' => '_boolS',
+        'integer' => '_intS',
+        'long' => '_longS',
+        'float' => '_floatS',
+        'double' => '_doubleS',
+        'datetime' => '_tDateS',
         'point' => '_p',
         'location' => '_location',
         'string_array' => '_stringM'
