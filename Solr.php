@@ -352,16 +352,7 @@ class Solr implements SolrInterface
                 continue;
             }
 
-            $this->eventManager->dispatch(Events::PRE_DOCUMENT_CREATE, new MetaInformationsEvent(
-                $metaInformations
-            ));
-
             $doc = $this->toDocument($metaInformations);
-
-            $this->eventManager->dispatch(Events::POST_DOCUMENT_CREATE, new DocumentEvent(
-                $metaInformations,
-                $doc
-            ));
 
             $allDocuments[$metaInformations->getIndex()][] = $doc;
         }
@@ -408,7 +399,17 @@ class Solr implements SolrInterface
      */
     private function toDocument(MetaInformationInterface $metaInformation): DocumentInterface
     {
+
+        $this->eventManager->dispatch(Events::PRE_DOCUMENT_CREATE, new MetaInformationsEvent(
+            $metaInformation
+        ));
+
         $doc = $this->entityMapper->toDocument($metaInformation);
+
+        $this->eventManager->dispatch(Events::POST_DOCUMENT_CREATE, new DocumentEvent(
+            $metaInformation,
+            $doc
+        ));
 
         return $doc;
     }

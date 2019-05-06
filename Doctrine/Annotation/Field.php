@@ -69,14 +69,14 @@ class Field extends Annotation
      * @var array
      */
     private static $TYP_COMPLEX_MAPPING = array(
-        'doubles' => '_ds',
-        'floats' => '_fs',
-        'longs' => '_ls',
-        'integers' => '_is',
-        'booleans' => '_bs',
-        'dates' => '_dts',
-        'texts' => '_txt',
-        'strings' => '_ss',
+        'doubles' => '_doubleM',
+        'floats' => '_floatM',
+        'longs' => '_longM',
+        'integers' => '_intM',
+        'booleans' => '_boolM',
+        'dates' => '_dateM',
+        'texts' => '_textM',
+        'strings' => '_stringM',
     );
 
     /**
