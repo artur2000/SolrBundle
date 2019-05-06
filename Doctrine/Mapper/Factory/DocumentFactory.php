@@ -65,7 +65,7 @@ class DocumentFactory
                 $document->addField('_childDocuments_', [$this->objectToDocument($fieldValue)], $field->getBoost());
             } else if (is_object($fieldValue) && !$field->nestedClass) { // index object as "flat" string, call getter
                 $document->addField($field->getNameWithAlias(), $this->mapObjectField($field), $field->getBoost());
-            } else if ($field->getter) { // call getter to transform data (json to array, etc.)
+            } else if ($field->getter && $fieldValue) { // call getter to transform data (json to array, etc.)
                 $getterValue = $this->callGetterMethod($metaInformation->getEntity(), $field->getGetterName());
                 $document->addField($field->getNameWithAlias(), $getterValue, $field->getBoost());
             } else { // field contains simple data-type
