@@ -7,6 +7,7 @@ use FS\SolrBundle\Doctrine\Mapper\Factory\DocumentFactory;
 use FS\SolrBundle\Doctrine\Mapper\Mapping\AbstractDocumentCommand;
 use FS\SolrBundle\Doctrine\Annotation\Index as Solr;
 use Solarium\QueryType\Update\Query\Document\Document;
+use Symfony\Component\EventDispatcher\EventDispatcherInterface;
 
 class EntityMapper implements EntityMapperInterface
 {
@@ -35,17 +36,22 @@ class EntityMapper implements EntityMapperInterface
      */
     private $documentFactory;
 
+    /** @var EventDispatcherInterface  */
+    private $dispatcher;
+
     /**
      * @param HydratorInterface      $doctrineHydrator
      * @param HydratorInterface      $indexHydrator
      * @param MetaInformationFactory $metaInformationFactory
+     * @param EventDispatcherInterface $dispatcher
      */
-    public function __construct(HydratorInterface $doctrineHydrator, HydratorInterface $indexHydrator, MetaInformationFactory $metaInformationFactory)
+    public function __construct(HydratorInterface $doctrineHydrator, HydratorInterface $indexHydrator, MetaInformationFactory $metaInformationFactory, EventDispatcherInterface $dispatcher)
     {
         $this->doctrineHydrator = $doctrineHydrator;
         $this->indexHydrator = $indexHydrator;
         $this->metaInformationFactory = $metaInformationFactory;
-        $this->documentFactory = new DocumentFactory($metaInformationFactory);
+        $this->dispatcher = $dispatcher;
+        $this->documentFactory = new DocumentFactory($metaInformationFactory, $this->dispatcher);
 
         $this->hydrationMode = HydrationModes::HYDRATE_DOCTRINE;
     }

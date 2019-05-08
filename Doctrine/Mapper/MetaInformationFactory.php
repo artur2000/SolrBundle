@@ -37,12 +37,13 @@ class MetaInformationFactory
 
     /**
      * @param object|string $entity entity, entity-alias or classname
+     * @param boolean $skipNested do not process nested entities to avoid endless recursion in case of bidirectional self-referencing relations
      *
      * @return MetaInformation
      *
      * @throws SolrMappingException if no declaration for document found in $entity
      */
-    public function loadInformation($entity)
+    public function loadInformation($entity, $skipNested=false)
     {
         $className = $this->getClass($entity);
 
@@ -76,12 +77,16 @@ class MetaInformationFactory
         $metaInformation->setNested($this->annotationReader->isNested($entity));
 
         $fields = $this->annotationReader->getFields($entity);
+
         foreach ($fields as $field) {
-            if (!$field->nestedClass) {
+            if (!$field->nestedClass || $className == $field->nestedClass) {
                 continue;
             }
 
-            $nestedObjectMetainformation = $this->loadInformation($field->nestedClass);
+            // do not process nested entities to avoid endless recursion in case of bidirectional self-referencing relations
+            if ($className != $field->nestedClass) {
+                $nestedObjectMetainformation = $this->loadInformation($field->nestedClass);
+            }
 
             $subentityMapping = [];
             $nestedFieldName = $field->name;

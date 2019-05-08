@@ -9,6 +9,10 @@ use FS\SolrBundle\Doctrine\Mapper\MetaInformationInterface;
 use FS\SolrBundle\Doctrine\Mapper\SolrMappingException;
 use Ramsey\Uuid\Uuid;
 use Solarium\QueryType\Update\Query\Document\Document;
+use Symfony\Component\EventDispatcher\EventDispatcherInterface;
+use FS\SolrBundle\Event\MetaInformationsEvent;
+use FS\SolrBundle\Event\DocumentEvent;
+use FS\SolrBundle\Event\Events;
 
 class DocumentFactory
 {
@@ -17,12 +21,36 @@ class DocumentFactory
      */
     private $metaInformationFactory;
 
+    /** @var EventDispatcherInterface  */
+    private $dispatcher;
+
     /**
      * @param MetaInformationFactory $metaInformationFactory
      */
-    public function __construct(MetaInformationFactory $metaInformationFactory)
+    public function __construct(MetaInformationFactory $metaInformationFactory, EventDispatcherInterface $dispatcher)
     {
         $this->metaInformationFactory = $metaInformationFactory;
+        $this->dispatcher = $dispatcher;
+    }
+
+    private function createDocumentProcessField(Field $field, Document $document, $entity) {
+        $fieldValue = $field->getValue();
+        if (($fieldValue instanceof Collection || is_array($fieldValue)) && $field->nestedClass) {
+            $val = $this->mapCollectionField($document, $field, $entity);
+            $val = $val;
+        } else if (($fieldValue instanceof Collection || is_array($fieldValue)) && !$field->nestedClass) {
+            // traverse the collection and fetch the values using the gater on the collection elements if objects
+            $this->mapCollectionFieldSimple($document, $field);
+        } else if (is_object($fieldValue) && $field->nestedClass) { // index sinsgle object as nested child-document
+            $document->addField('_childDocuments_', [$this->objectToDocument($fieldValue)], $field->getBoost());
+        } else if (is_object($fieldValue) && !$field->nestedClass) { // index object as "flat" string, call getter
+            $document->addField($field->getNameWithAlias(), $this->mapObjectField($field), $field->getBoost());
+        } else if ($field->getter && $fieldValue) { // call getter to transform data (json to array, etc.)
+            $getterValue = $this->callGetterMethod($entity, $field->getGetterName());
+            $document->addField($field->getNameWithAlias(), $getterValue, $field->getBoost());
+        } else { // field contains simple data-type
+            $document->addField($field->getNameWithAlias(), $fieldValue, $field->getBoost());
+        }
     }
 
     /**
@@ -34,10 +62,6 @@ class DocumentFactory
      */
     public function createDocument(MetaInformationInterface $metaInformation)
     {
-        $fields = $metaInformation->getFields();
-        if (count($fields) == 0) {
-            return null;
-        }
 
         if (!$metaInformation->getEntityId() && !$metaInformation->generateDocumentId()) {
             throw new SolrMappingException(sprintf('No entity id set for "%s"', $metaInformation->getClassName()));
@@ -53,31 +77,17 @@ class DocumentFactory
 
         $document->setBoost($metaInformation->getBoost());
 
+        $entity = $metaInformation->getEntity();
+        $fields = $metaInformation->getFields();
         foreach ($fields as $field) {
             if (!$field instanceof Field) {
                 continue;
             }
-
-            $fieldValue = $field->getValue();
-            if (($fieldValue instanceof Collection || is_array($fieldValue)) && $field->nestedClass) {
-                $this->mapCollectionField($document, $field, $metaInformation->getEntity());
-            } else if (($fieldValue instanceof Collection || is_array($fieldValue)) && !$field->nestedClass) {
-                // traverse the collection and fetch the values using the gater on the collection elements if objects
-                $document->addField($field->getNameWithAlias(), $this->mapCollectionFieldSimple($document, $field));
-            } else if (is_object($fieldValue) && $field->nestedClass) { // index sinsgle object as nested child-document
-                $document->addField('_childDocuments_', [$this->objectToDocument($fieldValue)], $field->getBoost());
-            } else if (is_object($fieldValue) && !$field->nestedClass) { // index object as "flat" string, call getter
-                $document->addField($field->getNameWithAlias(), $this->mapObjectField($field), $field->getBoost());
-            } else if ($field->getter && $fieldValue) { // call getter to transform data (json to array, etc.)
-                $getterValue = $this->callGetterMethod($metaInformation->getEntity(), $field->getGetterName());
-                $document->addField($field->getNameWithAlias(), $getterValue, $field->getBoost());
-            } else { // field contains simple data-type
-                $document->addField($field->getNameWithAlias(), $fieldValue, $field->getBoost());
-            }
-
+            $this->createDocumentProcessField($field, $document, $metaInformation->getEntity());
             if ($field->getFieldModifier()) {
                 $document->setFieldModifier($field->getNameWithAlias(), $field->getFieldModifier());
             }
+
         }
 
         return $document;
@@ -211,6 +221,8 @@ class DocumentFactory
 
         }
 
+        $document->addField($field->getNameWithAlias(), $values);
+
         return $values;
     }
 
@@ -226,7 +238,18 @@ class DocumentFactory
         $metaInformation = $this->metaInformationFactory->loadInformation($value);
 
         $field = [];
+
+        $this->dispatcher->dispatch(Events::PRE_DOCUMENT_CREATE, new MetaInformationsEvent(
+            $metaInformation
+        ));
+
         $document = $this->createDocument($metaInformation);
+
+        $this->dispatcher->dispatch(Events::POST_DOCUMENT_CREATE, new DocumentEvent(
+            $metaInformation,
+            $document
+        ));
+
         foreach ($document as $fieldName => $value) {
             $field[$fieldName] = $value;
         }
