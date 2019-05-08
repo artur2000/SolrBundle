@@ -61,6 +61,9 @@ class DocumentFactory
             $fieldValue = $field->getValue();
             if (($fieldValue instanceof Collection || is_array($fieldValue)) && $field->nestedClass) {
                 $this->mapCollectionField($document, $field, $metaInformation->getEntity());
+            } else if (($fieldValue instanceof Collection || is_array($fieldValue)) && !$field->nestedClass) {
+                // traverse the collection and fetch the values using the gater on the collection elements if objects
+                $document->addField($field->getNameWithAlias(), $this->mapCollectionFieldSimple($document, $field));
             } else if (is_object($fieldValue) && $field->nestedClass) { // index sinsgle object as nested child-document
                 $document->addField('_childDocuments_', [$this->objectToDocument($fieldValue)], $field->getBoost());
             } else if (is_object($fieldValue) && !$field->nestedClass) { // index object as "flat" string, call getter
@@ -171,6 +174,41 @@ class DocumentFactory
             }
 
             $document->addField('_childDocuments_', $values, $field->getBoost());
+        }
+
+        return $values;
+    }
+
+    /**
+     * @param Field  $field
+     * @param string $sourceTargetClass
+     *
+     * @return array
+     *
+     * @throws SolrMappingException if no getter method was found
+     */
+    private function mapCollectionFieldSimple($document, Field $field)
+    {
+        /** @var Collection $collection */
+        $collection = $field->getValue();
+        $getter = $field->getGetterName();
+
+        if (is_array($collection)) {
+            $collection = array_filter($collection, function ($value) {
+                return $value !== null;
+            });
+        }
+
+        $values = [];
+        if (count($collection)) {
+            foreach ($collection as $item) {
+                if (is_object($item) && $getter != '') {
+                    $values[] = $this->callGetterMethod($item, $getter);
+                } else {
+                    $values[] = $item;
+                }
+            }
+
         }
 
         return $values;
