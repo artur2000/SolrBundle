@@ -87,6 +87,9 @@
         </service>
 
         <service id="solr.doctrine.annotation.annotation_reader" class="FS\SolrBundle\Doctrine\Annotation\AnnotationReader">
+            <!--argument id="annotations.reader" type="service"/-->
+            <!-- DO NOT USE THE CachedReader (@annotation_reader) but explicitely the simple one -->
+            <!-- because of this https://github.com/floriansemm/SolrBundle/issues/199 -->
             <argument id="annotation_reader" type="service"/>
             <argument id="logger" type="service"/>
         </service>

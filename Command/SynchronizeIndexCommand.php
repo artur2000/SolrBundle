@@ -88,7 +88,7 @@ class SynchronizeIndexCommand extends ContainerAwareCommand
 
             $batchLoops = ceil($totalSize / $batchSize);
 
-            for ($i = 0; $i <= $batchLoops; $i++) {
+            for ($i = 0; $i < $batchLoops; $i++) {
                 $offset = $i * $batchSize;
                 if ($startOffset && $i == 0) {
                     $offset = $startOffset;
