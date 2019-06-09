@@ -35,6 +35,11 @@ class Field extends Annotation
     /**
      * @var string
      */
+    public $helper;
+
+    /**
+     * @var string
+     */
     public $fieldModifier;
 
     /**
@@ -121,6 +126,16 @@ class Field extends Annotation
     public function getGetterName()
     {
         return $this->getter;
+    }
+
+    /**
+     * Related object helper name
+     *
+     * @return string
+     */
+    public function getHelperName()
+    {
+        return $this->helper;
     }
 
     /**

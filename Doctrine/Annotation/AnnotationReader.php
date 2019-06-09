@@ -119,7 +119,6 @@ class AnnotationReader
                 $annotation->value = $method->invoke($entity);
             } catch (\Exception $e) {
                 $this->logger->error($e->getMessage());
-                $annotation->value = '[translation failed]';
             }
             
             if ($annotation->name == '') {

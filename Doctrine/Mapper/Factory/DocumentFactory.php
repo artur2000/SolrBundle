@@ -3,6 +3,7 @@
 namespace FS\SolrBundle\Doctrine\Mapper\Factory;
 
 use Doctrine\Common\Collections\Collection;
+use Doctrine\ORM\EntityManagerInterface;
 use FS\SolrBundle\Doctrine\Annotation\Field;
 use FS\SolrBundle\Doctrine\Mapper\MetaInformationFactory;
 use FS\SolrBundle\Doctrine\Mapper\MetaInformationInterface;
@@ -24,18 +25,29 @@ class DocumentFactory
     /** @var EventDispatcherInterface  */
     private $dispatcher;
 
+    /** @var EntityManagerInterface  */
+    private $entityManager;
+
     /**
      * @param MetaInformationFactory $metaInformationFactory
      */
-    public function __construct(MetaInformationFactory $metaInformationFactory, EventDispatcherInterface $dispatcher)
+    public function __construct(
+        MetaInformationFactory $metaInformationFactory,
+        EventDispatcherInterface $dispatcher,
+        EntityManagerInterface $om
+    )
     {
         $this->metaInformationFactory = $metaInformationFactory;
         $this->dispatcher = $dispatcher;
+        $this->entityManager = $om;
     }
 
     private function createDocumentProcessField(Field $field, Document $document, $entity) {
         $fieldValue = $field->getValue();
-        if (($fieldValue instanceof Collection || is_array($fieldValue)) && $field->nestedClass) {
+        if ($field->helper) { // call helper method to fetch external data
+            $getterValue = $this->callHelperMethod($entity, $field->getHelperName(), $fieldValue);
+            $document->addField($field->getNameWithAlias(), $getterValue, $field->getBoost());
+        } else if (($fieldValue instanceof Collection || is_array($fieldValue)) && $field->nestedClass) {
             $val = $this->mapCollectionField($document, $field, $entity);
             $val = $val;
         } else if (($fieldValue instanceof Collection || is_array($fieldValue)) && !$field->nestedClass) {
@@ -107,7 +119,7 @@ class DocumentFactory
         if (empty($getter)) {
             throw new SolrMappingException(sprintf('Please configure a getter for property "%s" in class "%s"', $field->name, get_class($value)));
         }
-        
+
         $getterReturnValue = $this->callGetterMethod($value, $getter);
 
         if (is_object($getterReturnValue)) {
@@ -149,6 +161,54 @@ class DocumentFactory
         }
 
         return $method->invoke($object);
+    }
+
+    /**
+     * @param object $object
+     * @param string $helper
+     *
+     * @return mixed
+     *
+     * @throws SolrMappingException if given helper does not exists
+     */
+    private function callHelperMethod($object, $helper, $fieldValue)
+    {
+        $methodName = $helper;
+
+        if (strpos($helper, '::') !== false) {
+            $className = substr($helper, 0, strpos($helper, '::'));
+            $methodName = substr($helper, strpos($helper, '::') + 2);
+            $helperObject = new $className($this->entityManager);
+        } else {
+            $helperObject = null;
+        }
+
+        if (strpos($helper, '(') !== false) {
+            $methodName = substr($methodName, 0, strpos($methodName, '('));
+        }
+
+        if ($helperObject && !method_exists($helperObject, $methodName)) {
+            throw new SolrMappingException(sprintf('No method "%s()" found in class "%s"', $methodName, get_class($helperObject)));
+        }
+
+        $method = new \ReflectionMethod($helperObject, $methodName);
+
+        // pass the entity itself as first argument
+        $getterArguments = [$object];
+
+        // pass the original value as second argument
+        $getterArguments[] = $fieldValue;
+
+        // getter with additional arguments in a third array argument
+        if (strpos($helper, ')') !== false) {
+            $additionalArguments = explode(',', substr($helper, strpos($helper, '(') + 1, -1));
+            $additionalArguments = array_map(function ($parameter) {
+                return trim(preg_replace('#[\'"]#', '', $parameter));
+            }, $additionalArguments);
+            $getterArguments[] = $additionalArguments;
+        }
+
+        return $method->invokeArgs($helperObject, $getterArguments);
     }
 
     /**
