@@ -16,6 +16,6 @@ interface FieldValueHelper
 
     public function __construct(EntityManagerInterface $entityManager);
 
-    public function fetch(Object $entity, ?array $data, $fieldValue=null);
+    public function fetch(Object $entity, $fieldValue=null, ?array $data);
 
 }
