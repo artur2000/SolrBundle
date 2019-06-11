@@ -8,12 +8,14 @@ use FS\SolrBundle\Doctrine\Annotation\Field;
 use FS\SolrBundle\Doctrine\Mapper\MetaInformationFactory;
 use FS\SolrBundle\Doctrine\Mapper\MetaInformationInterface;
 use FS\SolrBundle\Doctrine\Mapper\SolrMappingException;
+use Psr\Log\LoggerInterface;
 use Ramsey\Uuid\Uuid;
 use Solarium\QueryType\Update\Query\Document\Document;
 use Symfony\Component\EventDispatcher\EventDispatcherInterface;
 use FS\SolrBundle\Event\MetaInformationsEvent;
 use FS\SolrBundle\Event\DocumentEvent;
 use FS\SolrBundle\Event\Events;
+use Symfony\Component\DependencyInjection\Container;
 
 class DocumentFactory
 {
@@ -28,18 +30,29 @@ class DocumentFactory
     /** @var EntityManagerInterface  */
     private $entityManager;
 
+    /** @var Container  */
+    private $serviceContainer;
+
+    /** @var LoggerInterface  */
+    private $logger;
+
     /**
      * @param MetaInformationFactory $metaInformationFactory
+     * @param EventDispatcherInterface $dispatcher
+     * @param Container $container
+     * @throws \Exception
      */
     public function __construct(
         MetaInformationFactory $metaInformationFactory,
         EventDispatcherInterface $dispatcher,
-        EntityManagerInterface $om
+        Container $container,
+        LoggerInterface $logger
     )
     {
         $this->metaInformationFactory = $metaInformationFactory;
         $this->dispatcher = $dispatcher;
-        $this->entityManager = $om;
+        $this->serviceContainer = $container;
+        $this->logger = $logger;
     }
 
     private function createDocumentProcessField(Field $field, Document $document, $entity) {
@@ -175,40 +188,46 @@ class DocumentFactory
     {
         $methodName = $helper;
 
-        if (strpos($helper, '::') !== false) {
-            $className = substr($helper, 0, strpos($helper, '::'));
-            $methodName = substr($helper, strpos($helper, '::') + 2);
-            $helperObject = new $className($this->entityManager);
-        } else {
-            $helperObject = null;
+        try {
+            if (strpos($helper, '::') !== false) {
+                $className = substr($helper, 0, strpos($helper, '::'));
+                $methodName = substr($helper, strpos($helper, '::') + 2);
+                $helperObject = $this->serviceContainer->get($className);
+            } else {
+                $helperObject = null;
+            }
+
+            if (strpos($helper, '(') !== false) {
+                $methodName = substr($methodName, 0, strpos($methodName, '('));
+            }
+
+            if ($helperObject && !method_exists($helperObject, $methodName)) {
+                throw new SolrMappingException(sprintf('No method "%s()" found in class "%s"', $methodName, get_class($helperObject)));
+            }
+
+            $method = new \ReflectionMethod($helperObject, $methodName);
+
+            // pass the entity itself as first argument
+            $getterArguments = [$object];
+
+            // pass the original value as second argument
+            $getterArguments[] = $fieldValue;
+
+            // getter with additional arguments in a third array argument
+            if (strpos($helper, ')') !== false) {
+                $additionalArguments = explode(',', substr($helper, strpos($helper, '(') + 1, -1));
+                $additionalArguments = array_map(function ($parameter) {
+                    return trim(preg_replace('#[\'"]#', '', $parameter));
+                }, $additionalArguments);
+                $getterArguments[] = $additionalArguments;
+            }
+
+            return $method->invokeArgs($helperObject, $getterArguments);
+        } catch (\Exception $e) {
+            // do not stop the process in case of failure
+            $this->logger->error($e->getMessage(), $e->getTrace());
         }
 
-        if (strpos($helper, '(') !== false) {
-            $methodName = substr($methodName, 0, strpos($methodName, '('));
-        }
-
-        if ($helperObject && !method_exists($helperObject, $methodName)) {
-            throw new SolrMappingException(sprintf('No method "%s()" found in class "%s"', $methodName, get_class($helperObject)));
-        }
-
-        $method = new \ReflectionMethod($helperObject, $methodName);
-
-        // pass the entity itself as first argument
-        $getterArguments = [$object];
-
-        // pass the original value as second argument
-        $getterArguments[] = $fieldValue;
-
-        // getter with additional arguments in a third array argument
-        if (strpos($helper, ')') !== false) {
-            $additionalArguments = explode(',', substr($helper, strpos($helper, '(') + 1, -1));
-            $additionalArguments = array_map(function ($parameter) {
-                return trim(preg_replace('#[\'"]#', '', $parameter));
-            }, $additionalArguments);
-            $getterArguments[] = $additionalArguments;
-        }
-
-        return $method->invokeArgs($helperObject, $getterArguments);
     }
 
     /**

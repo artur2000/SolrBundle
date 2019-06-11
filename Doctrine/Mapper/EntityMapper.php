@@ -6,9 +6,11 @@ use FS\SolrBundle\Doctrine\Hydration\HydratorInterface;
 use FS\SolrBundle\Doctrine\Mapper\Factory\DocumentFactory;
 use FS\SolrBundle\Doctrine\Mapper\Mapping\AbstractDocumentCommand;
 use FS\SolrBundle\Doctrine\Annotation\Index as Solr;
+use Psr\Log\LoggerInterface;
 use Solarium\QueryType\Update\Query\Document\Document;
 use Symfony\Component\EventDispatcher\EventDispatcherInterface;
 use Doctrine\ORM\EntityManagerInterface;
+use Symfony\Component\DependencyInjection\Container;
 
 class EntityMapper implements EntityMapperInterface
 {
@@ -41,25 +43,28 @@ class EntityMapper implements EntityMapperInterface
     private $dispatcher;
 
     /**
-     * @param HydratorInterface      $doctrineHydrator
-     * @param HydratorInterface      $indexHydrator
+     * @param HydratorInterface $doctrineHydrator
+     * @param HydratorInterface $indexHydrator
      * @param MetaInformationFactory $metaInformationFactory
      * @param EventDispatcherInterface $dispatcher
+     * @param LoggerInterface $logger
+     * @param Container $container
+     * @throws \Exception
      */
     public function __construct(
         HydratorInterface $doctrineHydrator,
         HydratorInterface $indexHydrator,
         MetaInformationFactory $metaInformationFactory,
         EventDispatcherInterface $dispatcher,
-        EntityManagerInterface $om
+        LoggerInterface $logger,
+        Container $container
     )
     {
         $this->doctrineHydrator = $doctrineHydrator;
         $this->indexHydrator = $indexHydrator;
         $this->metaInformationFactory = $metaInformationFactory;
         $this->dispatcher = $dispatcher;
-        $this->documentFactory = new DocumentFactory($metaInformationFactory, $this->dispatcher, $om);
-
+        $this->documentFactory = new DocumentFactory($metaInformationFactory, $this->dispatcher, $container, $logger);
         $this->hydrationMode = HydrationModes::HYDRATE_DOCTRINE;
     }
 

@@ -61,7 +61,8 @@
             <argument id="solr.doctrine.hydration.index_hydrator" type="service"/>
             <argument type="service" id="solr.meta.information.factory"/>
             <argument type="service" id="event_dispatcher"/>
-            <argument type="service" id="doctrine.orm.entity_manager"/>
+            <argument type="service" id="logger"/>
+            <argument type="service" id="service_container"/>
         </service>
 
         <service id="solr.doctrine.hydration.doctrine_hydrator" class="FS\SolrBundle\Doctrine\Hydration\DoctrineHydrator">
