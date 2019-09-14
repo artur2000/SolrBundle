@@ -115,17 +115,17 @@ class AnnotationReader
                 continue;
             }
 
-// AC: Why do we need to actually call a method if we only fetch meta data from the annotation
-// calling methods on actually not hydrated real entities may result in various exceptions
+// AC: calling methods on actually not hydrated real entities may result in various exceptions
 // not even related with the solr indexing process.
-// For the time beeing my indexing works without the removed code below.
 // If I find the reason for it later I will come back to it
-//            try {
-//                $annotation->value = $method->invoke($entity);
-//            } catch (\Exception $e) {
-//                $this->logger->error($e->getMessage());
-//            }
-            
+            if ($entity->getId()) {
+                try {
+                    $annotation->value = $method->invoke($entity);
+                } catch (\Exception $e) {
+                    $this->logger->error($e->getMessage());
+                }
+            }
+
             if ($annotation->name == '') {
                 throw new SolrMappingException(sprintf('Please configure a field-name for method "%s" with field-annotation in class "%s"', $method->getName(), get_class($entity)));
             }

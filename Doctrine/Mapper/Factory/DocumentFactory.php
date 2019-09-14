@@ -219,6 +219,14 @@ class DocumentFactory
                 $additionalArguments = array_map(function ($parameter) {
                     return trim(preg_replace('#[\'"]#', '', $parameter));
                 }, $additionalArguments);
+                foreach ($additionalArguments as $key => $parameter) {
+                    $tmp = explode('=', $parameter);
+                    if (count($tmp) > 1) {
+                        unset($additionalArguments[$key]);
+                        $index = array_shift($tmp);
+                        $additionalArguments[$index] = implode('=', $tmp);
+                    }
+                }
                 $getterArguments[] = $additionalArguments;
             }
 

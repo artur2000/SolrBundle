@@ -14,6 +14,6 @@ use Doctrine\ORM\EntityManagerInterface;
 interface FieldValueHelper
 {
 
-    public function fetch(Object $entity, $fieldValue=null, ?array $data);
+    public function fetch(Object $entity, $fieldValue=null, ?array $parameters);
 
 }
