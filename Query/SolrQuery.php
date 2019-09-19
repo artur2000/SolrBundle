@@ -155,20 +155,21 @@ class SolrQuery extends AbstractQuery
         return $this;
     }
 
-    /**
-     * @param string $field
-     *
-     * @return SolrQuery
-     */
-    public function addField($field)
-    {
-        $entityFieldNames = array_flip($this->mappedFields);
-        if (array_key_exists($field, $entityFieldNames)) {
-            parent::addField($entityFieldNames[$field]);
-        }
-
-        return $this;
-    }
+//    /**
+//     * @param string $field
+//     *
+//     * @return SolrQuery
+//     */
+//    public function addField($field)
+//    {
+//        $entityFieldNames = array_flip($this->mappedFields);
+//        if (array_key_exists($field, $entityFieldNames)) {
+//            parent::addField($entityFieldNames[$field]);
+//        }
+//        parent::addField($entityFieldNames[$field]);
+//
+//        return $this;
+//    }
 
     /**
      * {@inheritdoc}
