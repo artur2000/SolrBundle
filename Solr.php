@@ -261,12 +261,16 @@ class Solr implements SolrInterface
      */
     public function getSelectQuery(AbstractQuery $query): SolariumQuery
     {
+        /** @var \Solarium\QueryType\Select\Query\Query $selectQuery */
         $selectQuery = $this->solrClientCore->createSelect($query->getOptions());
 
         $selectQuery->setQuery($query->getQuery());
         $selectQuery->setFilterQueries($query->getFilterQueries());
         $selectQuery->setSorts($query->getSorts());
         $selectQuery->setFields($query->getFields());
+        foreach ($query->getParams() as $key=>$val) {
+            $selectQuery->addParam($key, $val);
+        }
 
         return $selectQuery;
     }
