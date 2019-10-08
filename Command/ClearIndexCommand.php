@@ -5,6 +5,7 @@ namespace FS\SolrBundle\Command;
 use FS\SolrBundle\SolrException;
 use Symfony\Component\DependencyInjection\ContainerAwareInterface;
 use Symfony\Component\DependencyInjection\ContainerAwareTrait;
+use Symfony\Component\Console\Command\Command;
 use Symfony\Component\Console\Input\InputArgument;
 use Symfony\Component\Console\Input\InputInterface;
 use Symfony\Component\Console\Input\InputOption;
@@ -13,7 +14,7 @@ use Symfony\Component\Console\Output\OutputInterface;
 /**
  * Command clears the whole index
  */
-class ClearIndexCommand implements ContainerAwareInterface
+class ClearIndexCommand extends Command implements ContainerAwareInterface
 {
     use ContainerAwareTrait;
 
