@@ -6,7 +6,8 @@ use Doctrine\Common\Persistence\ObjectManager;
 use Doctrine\ODM\MongoDB\DocumentRepository;
 use Doctrine\ORM\EntityRepository;
 use FS\SolrBundle\Doctrine\Mapper\SolrMappingException;
-use Symfony\Bundle\FrameworkBundle\Command\ContainerAwareCommand;
+use Symfony\Component\DependencyInjection\ContainerAwareInterface;
+use Symfony\Component\DependencyInjection\ContainerAwareTrait;
 use Symfony\Component\Console\Input\InputArgument;
 use Symfony\Component\Console\Input\InputInterface;
 use Symfony\Component\Console\Input\InputOption;
@@ -16,8 +17,10 @@ use Symfony\Component\Console\Question\ConfirmationQuestion;
 /**
  * Command synchronizes the DB with solr
  */
-class SynchronizeIndexCommand extends ContainerAwareCommand
+class SynchronizeIndexCommand implements ContainerAwareInterface
 {
+    use ContainerAwareTrait;
+
     /**
      * {@inheritdoc}
      */
@@ -44,7 +47,7 @@ class SynchronizeIndexCommand extends ContainerAwareCommand
 
         $startOffset = $input->getOption('start-offset');
         $batchSize = $input->getOption('flushsize');
-        $solr = $this->getContainer()->get('solr.client');
+        $solr = $this->container->get('solr.client');
 
         if ($startOffset > 0 && count($entities) > 1) {
             $output->writeln('<error>Wrong usage. Please use start-offset option together with the entity argument.</error>');
@@ -118,12 +121,12 @@ class SynchronizeIndexCommand extends ContainerAwareCommand
      */
     private function getObjectManager($entityClassname)
     {
-        $objectManager = $this->getContainer()->get('doctrine')->getManagerForClass($entityClassname);
+        $objectManager = $this->container->get('doctrine')->getManagerForClass($entityClassname);
         if ($objectManager) {
             return $objectManager;
         }
 
-        $objectManager = $this->getContainer()->get('doctrine_mongodb')->getManagerForClass($entityClassname);
+        $objectManager = $this->container->get('doctrine_mongodb')->getManagerForClass($entityClassname);
         if ($objectManager) {
             return $objectManager;
         }
@@ -145,8 +148,8 @@ class SynchronizeIndexCommand extends ContainerAwareCommand
         }
 
         $entities = [];
-        $namespaces = $this->getContainer()->get('solr.doctrine.classnameresolver.known_entity_namespaces');
-        $metaInformationFactory = $this->getContainer()->get('solr.meta.information.factory');
+        $namespaces = $this->container->get('solr.doctrine.classnameresolver.known_entity_namespaces');
+        $metaInformationFactory = $this->container->get('solr.meta.information.factory');
 
         foreach ($namespaces->getEntityClassnames() as $classname) {
             try {

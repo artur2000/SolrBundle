@@ -4,13 +4,16 @@ namespace FS\SolrBundle\Command;
 
 use FS\SolrBundle\Doctrine\Mapper\MetaInformationInterface;
 use FS\SolrBundle\Doctrine\Mapper\SolrMappingException;
-use Symfony\Bundle\FrameworkBundle\Command\ContainerAwareCommand;
+use Symfony\Component\DependencyInjection\ContainerAwareInterface;
+use Symfony\Component\DependencyInjection\ContainerAwareTrait;
 use Symfony\Component\Console\Helper\Table;
 use Symfony\Component\Console\Input\InputInterface;
 use Symfony\Component\Console\Output\OutputInterface;
 
-class ShowSchemaCommand extends ContainerAwareCommand
+class ShowSchemaCommandimplements ContainerAwareInterface
 {
+    use ContainerAwareTrait;
+
     /**
      * {@inheritdoc}
      */
@@ -25,8 +28,8 @@ class ShowSchemaCommand extends ContainerAwareCommand
      */
     protected function execute(InputInterface $input, OutputInterface $output)
     {
-        $namespaces = $this->getContainer()->get('solr.doctrine.classnameresolver.known_entity_namespaces');
-        $metaInformationFactory = $this->getContainer()->get('solr.meta.information.factory');
+        $namespaces = $this->container->get('solr.doctrine.classnameresolver.known_entity_namespaces');
+        $metaInformationFactory = $this->container->get('solr.meta.information.factory');
 
         foreach ($namespaces->getEntityClassnames() as $classname) {
             try {

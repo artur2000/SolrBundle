@@ -3,7 +3,8 @@
 namespace FS\SolrBundle\Command;
 
 use FS\SolrBundle\SolrException;
-use Symfony\Bundle\FrameworkBundle\Command\ContainerAwareCommand;
+use Symfony\Component\DependencyInjection\ContainerAwareInterface;
+use Symfony\Component\DependencyInjection\ContainerAwareTrait;
 use Symfony\Component\Console\Input\InputArgument;
 use Symfony\Component\Console\Input\InputInterface;
 use Symfony\Component\Console\Input\InputOption;
@@ -12,8 +13,10 @@ use Symfony\Component\Console\Output\OutputInterface;
 /**
  * Command clears the whole index
  */
-class ClearIndexCommand extends ContainerAwareCommand
+class ClearIndexCommand implements ContainerAwareInterface
 {
+    use ContainerAwareTrait;
+
     /**
      * {@inheritdoc}
      */
@@ -29,7 +32,7 @@ class ClearIndexCommand extends ContainerAwareCommand
      */
     protected function execute(InputInterface $input, OutputInterface $output)
     {
-        $solr = $this->getContainer()->get('solr.client');
+        $solr = $this->container->get('solr.client');
 
         try {
             $solr->clearIndex();
